@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="Qt6zROQ2mwzYfUjOusXKTj">
+<head data-page-node-id="GMcfCrQiopqUpCIeAMUPkO">
+  <meta charset="UTF-8" data-page-node-id="Iiyz6Hv9HLxtfE1fW4eP7p">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="5QXSCuffD6uPXtQl1159Pj">
+  <title>AI 图片生成 - Image Generation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          animation: {
+            'spin-slow': 'spin 3s linear infinite',
+            'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
+          },
+          keyframes: {
+            'pulse-soft': {
+              '0%, 100%': { opacity: 0.6 },
+              '50%': { opacity: 1 },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * {
+      transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .dark .glass {
+      background: rgba(30, 30, 35, 0.7);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .loading-spinner {
+      border: 3px solid rgba(99, 102, 241, 0.2);
+      border-top: 3px solid #6366f1;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 0.8s linear infinite;
+    }
+    .image-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .image-card:hover {
+      transform: translateY(-2px);
+    }
+    .copy-toast {
+      animation: fadeInOut 2s ease forwards;
+    }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateY(10px); }
+      15% { opacity: 1; transform: translateY(0); }
+      85% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    body.no-scroll {
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-100 via-gray-50 to-slate-200 dark:from-gray-900 dark:via-slate-900 dark:to-gray-950 min-h-screen" data-page-node-id="viZCp2uC043R5Ng7ZxBXaD">
+
+  <div class="max-w-5xl mx-auto px-4 py-8" data-page-node-id="wna3uO8GfjNHl6FfT9dxPU">
+
+    <!-- Header -->
+    <header class="text-center mb-10" data-page-node-id="AA0twqWQYCISY0rpADnxLh">
+      <div class="flex items-center justify-center gap-3 mb-3" data-page-node-id="K6b9DnZEP6Tvz23IlwWZmw">
+        <div class="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-lg shadow-indigo-500/25" data-page-node-id="MWxWg0Zkv1Lk2w20NlrDGl">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" data-page-node-id="UNcJTwnSziB9MWZ6ZlY6Xw">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" data-page-node-id="JWKUECWuuFtaUAqYikcOYX" />
+          </svg>
+        </div>
+        <div class="text-left" data-page-node-id="ZCN1xpx3iKRBTBdRft47MQ">
+          <h1 class="text-3xl font-bold text-gray-800 dark:text-white" data-page-node-id="i9EuHIhYT7zva01DPNj7OW">AI 图片生成</h1>
+          <p class="text-sm text-gray-500 dark:text-gray-400" data-page-node-id="239tZVTs9z0h8RmPpKeeht">Image Generation · /v1/images/generations</p>
+        </div>
+      </div>
+      <p class="text-gray-500 dark:text-gray-400 max-w-lg mx-auto text-sm" data-page-node-id="IVDZSh02lRCQRZ8THTXWEa">
+        输入提示词，选择模型与尺寸，AI 将为您生成高质量的图片
+      </p>
+    </header>
+
+    <!-- Main Card -->
+    <div class="glass rounded-3xl shadow-xl border border-white/30 dark:border-white/5 p-6 md:p-8" data-page-node-id="FQft0KFSVGXOOf43q9SZI4">
+
+      <!-- API Settings -->
+      <div class="mb-6 p-4 bg-gray-50/80 dark:bg-gray-800/40 rounded-2xl border border-gray-200/60 dark:border-gray-700/40" data-page-node-id="qFWxwGy72KEj4KtfrjCiVX">
+        <div class="flex items-center gap-2 mb-3" data-page-node-id="ZcvxsKkePAfZOh3n4FoOPU">
+          <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" data-page-node-id="P6JhHuqDNtbOS7O89S7Ae0">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" data-page-node-id="mjAg0HON9s9M54NUdownNd" />
+          </svg>
+          <span class="text-sm font-medium text-gray-700 dark:text-gray-300" data-page-node-id="oLEBIrDTSyCa2QA9q6BZqj">API 配置</span>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3" data-page-node-id="xbY9eSyi1Sfd5lSGGdGZj4">
+          <div class="flex-1" data-page-node-id="yyriolbOa1i6ULGp568d0v">
+            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5" data-page-node-id="d483yT5B9VEG6qBswHgcUD">API Base URL</label>
+            <input id="apiBase" value="https://api.geziapi.com"
+                   class="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none dark:text-gray-200 placeholder-gray-400" data-page-node-id="rqx3XNqoDv1DYUTn8UrGRa">
+          </div>
+          <div class="flex-1" data-page-node-id="VCsBdjWJpkTIWj8b2a4iOn">
+            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5" data-page-node-id="pXE8RqXnAZKIzv2w5hzyRZ">Authorization (Bearer Token)</label>
+            <input id="apiKey" type="text" placeholder="sk-xxxxx"
+                   class="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none dark:text-gray-200 placeholder-gray-400" data-page-node-id="XxBYiZGw8pmkVk2WKXFcmD">
+          </div>
+        </div>
+      </div>
+
+      <!-- Form -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" data-page-node-id="jln5eWO7dfrWkaYUpvQXI6">
+
+        <!-- Left: Main Inputs -->
+        <div class="lg:col-span-2 space-y-5" data-page-node-id="Ml9kzu2PLzNahAVuy3CL2A">
+
+          <!-- Model -->
+          <div data-page-node-id="3y5kNotW6QM3amtsKnUsvU">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5" data-page-node-id="XjAkGO19m9l7YAbX7l3tfH">模型</label>
+            <select id="model"
+                    class="w-full px-3 py-2.5 bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-xl text-sm dark:text-gray-400 cursor-not-allowed" data-page-node-id="X7CSvzAGWxY12SyWgKdpbE">
+              <option value="gpt-image-2-per" data-page-node-id="vFM2Sb4h2rkHmnH9yRsv1k">gpt-image-2-per</option>
+              <option value="gpt-image-2.5-flare">gpt-image-2.5-flare</option>
+              <option value="gpt-image-2.5-sunburst">gpt-image-2.5-sunburst</option>
+            </select>
+          </div>
+
+          <!-- Prompt -->
+          <div data-page-node-id="DA0UdjrfViXxC1OaW2d95w">
+            <div class="flex items-center justify-between mb-1.5" data-page-node-id="ePZY9q1ebywrRu0TF3BSp6">
+              <label class="text-sm font-medium text-gray-700 dark:text-gray-300" data-page-node-id="KVg6nRDBCYzO08mlJ8FFiF">提示词</label>
+              <span id="promptCount" class="text-xs text-gray-400" data-page-node-id="3LtDNVcZACxFF0l4FJh0rO">0 字</span>
+            </div>
+            <textarea id="prompt" rows="4" placeholder="描述您想要生成的图片，越详细效果越好..."
+                      class="w-full px-3 py-2.5 bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none resize-none text-sm dark:text-gray-200 placeholder-gray-400"></textarea>
+          </div>
+
+          <!-- Reference Images -->
+          <div data-page-node-id="TjsC1Az99OcpwnfUVkTVj9">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5" data-page-node-id="BBPBNZVuNfZ0fuVLAWBqT4">参考图（可选，可添加多个）</label>
+            <div class="flex gap-2" data-page-node-id="vsTFfS0rJSDpq03EyRXMTV">
+              <input id="imageUrlInput" type="text" placeholder="输入图片 URL 或 base64 数据，回车添加"
+                     class="flex-1 px-3 py-2.5 bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none text-sm dark:text-gray-200 placeholder-gray-400" data-page-node-id="VFFFKo4NitFk54dE2TpQzO">
+              <button id="addImageBtn" class="px-4 py-2.5 bg-indigo-100 dark:bg-indigo-900/40 hover:bg-indigo-200 dark:hover:bg-indigo-800/40 text-indigo-700 dark:text-indigo-300 rounded-xl text-sm font-medium border border-indigo-200 dark:border-indigo-700/40 shrink-0" data-page-node-id="TiyD5J2PkKACnZvEplQhqC">
+                添加
+              </button>
+              <label class="flex items-center gap-1.5 px-4 py-2.5 bg-gray-100 dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-600 dark:text-gray-300 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600/60 shrink-0" data-page-node-id="REcTTU0FpMp4bfyuUDep8S">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" data-page-node-id="HER4ZwXyWS8cxRfI4rsM8o">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" data-page-node-id="qKpsZ2z44DpYsqQBj9l3Tp" />
+                </svg>
+                上传
+                <input type="file" accept="image/*" class="hidden" id="imageUpload" data-page-node-id="H1UVdYFiz89Xf9RrGtsRlh">
+              </label>
+            </div>
+            <div id="imageList" class="flex flex-wrap gap-2 mt-2 hidden" data-page-node-id="EB7Zzs1HYlkp3EyUrsv7C5"></div>
+          </div>
+
+        </div>
+
+        <!-- Right: Options -->
+        <div class="space-y-5" data-page-node-id="3ukXd90ZIisJ2ZakeFyczZ">
+
+          <!-- Size -->
+          <div data-page-node-id="byBGbFcFSjXNHqtHmGAeMQ">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5" data-page-node-id="ZpXOTl4hzRoVht51gzNTAt">尺寸</label>
+            <select id="size"
+                    class="w-full px-3 py-2.5 bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none text-sm dark:text-gray-200" data-page-node-id="lqX3bfg1oBfTcBgWmtg1kB">
+              <option value="1024x1024" data-page-node-id="XaSRfcLfcVdILrEFL3OubY">1024 × 1024（方形）</option>
+              <option value="1792x1024" data-page-node-id="tpriBvcUAfCiVZQYcf8zil">1792 × 1024（横版）</option>
+              <option value="1024x1792" data-page-node-id="A19TAhXUZCr7mBERhDOjY3">1024 × 1792（竖版）</option>
+              <option value="512x512" data-page-node-id="3odRK1fLKS321AZkdIfPeS">512 × 512</option>
+              <option value="768x768" data-page-node-id="8eoiOpTmFWabHfWVquQ4LA">768 × 768</option>
+              <option value="2880x1800">2880 × 1800（壁纸）</option>
+            </select>
+          </div>
+
+          <!-- Custom Size -->
+          <div data-page-node-id="u6XRf14H15NKqKgfhEcD7g">
+            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5" data-page-node-id="ypg0iGxTUEa9HAdKPJN4Fs">自定义尺寸</label>
+            <div class="flex items-center gap-2" data-page-node-id="VAEzbpkACPxSRl348fe1ZY">
+              <input id="customWidth" type="number" placeholder="宽" min="256" max="4096"
+                     class="w-full px-3 py-2.5 bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none text-sm dark:text-gray-200 placeholder-gray-400" data-page-node-id="fur1H7GctER5B537VMkb0i">
+              <span class="text-gray-400 shrink-0" data-page-node-id="XgA7T69Jc3ye0VcWpi5tQN">×</span>
+              <input id="customHeight" type="number" placeholder="高" min="256" max="4096"
+                     class="w-full px-3 py-2.5 bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none text-sm dark:text-gray-200 placeholder-gray-400" data-page-node-id="C1LWcaCVIHRlbREwpEjNFA">
+            </div>
+          </div>
+
+          <!-- Response Format -->
+          <div data-page-node-id="kPrb62rE0wTPh9e8XAplKC">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5" data-page-node-id="LSCHM2T6LIGIeUpiFYHLWV">返回格式</label>
+            <select id="responseFormat"
+                    class="w-full px-3 py-2.5 bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none text-sm dark:text-gray-200" data-page-node-id="QuCIg0kdiMEf4VmHsHzhuN">
+              <option value="url" data-page-node-id="QAM6qjfSMjhDks1QGHceAS">URL（直链）</option>
+              <option value="b64_json" data-page-node-id="EiD2vHaRlU7mIM4TdcnYZJ">Base64 JSON</option>
+            </select>
+          </div>
+
+          <!-- Number of Images -->
+          <div data-page-node-id="gLgmxF3yUoO1TBZyrSmFKZ">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5" data-page-node-id="PpsGd0jUVFHKdNujBXHaUX">生成数量</label>
+            <select id="n"
+                    class="w-full px-3 py-2.5 bg-white dark:bg-gray-700/60 border border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-500 outline-none text-sm dark:text-gray-200" data-page-node-id="5wGwGXPoylzo8YuMfRFhAD">
+              <option value="1" data-page-node-id="o8rRgoO23LqKubHFLev2f5">1 张</option>
+              <option value="2" data-page-node-id="va2Z5lunCATpQR8qhjErwE">2 张</option>
+              <option value="3" data-page-node-id="I3OwDHGqcqFculdcSnSbHA">3 张</option>
+              <option value="4" data-page-node-id="XjuwK1KbtI0tFxAfHaT6ZX">4 张</option>
+            </select>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Submit -->
+      <div class="mt-6 flex items-center gap-3" data-page-node-id="SHjQTml6fjFEVF04RpeTC4">
+        <button id="generateBtn"
+                class="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium rounded-xl shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100" data-page-node-id="WJ3mAJAlK3alc9S8yI6ZR2">
+          <svg id="btnIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" data-page-node-id="M6hPcn2AGO6n3dUeV41RXb">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" data-page-node-id="6IfKVm3UnO2eKRsyjgnh2F" />
+          </svg>
+          <span id="btnText" data-page-node-id="hRJyLu46mgxMXQHbSvC3eC">生成图片</span>
+        </button>
+        <button id="resetBtn"
+                class="px-4 py-3 bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-600/60 text-gray-600 dark:text-gray-300 rounded-xl border border-gray-200 dark:border-gray-600 text-sm" data-page-node-id="DVC4mFQWHHBXDMGk3MVVeh">
+          重置
+        </button>
+      </div>
+
+      <!-- Error -->
+      <div id="errorMsg" class="hidden mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/40 rounded-xl text-sm text-red-600 dark:text-red-400 flex items-start gap-2" data-page-node-id="7Y5imT28rs7YKWPWyaAGNt">
+        <svg class="w-5 h-5 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" data-page-node-id="1dgILmzBXJVMpLwUsAB4XV">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" data-page-node-id="m79h4wro0VReLRHxm8IhyV" />
+        </svg>
+        <span id="errorText" data-page-node-id="JcGZLtHEmhA5c2y23pvlDk"></span>
+      </div>
+
+    </div>
+
+    <!-- Result Section -->
+    <div id="resultSection" class="hidden mt-8" data-page-node-id="oGyMF7LQCGq7wbX18L2IkO">
+
+      <!-- Result Tabs -->
+      <div class="flex items-center gap-3 mb-4" data-page-node-id="W8c4bYmlNNOL3s16Lt2lFH">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-white" data-page-node-id="2YtKlBWu0IczkelJfkJp4F">生成结果</h2>
+        <span id="resultBadge" class="px-2.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium rounded-full" data-page-node-id="8p5gJfsvrqQxe81ppjW5cD"></span>
+      </div>
+
+      <!-- Image Grid -->
+      <div id="imageGrid" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 mb-6" data-page-node-id="rHNp35DGYhnhSshdj8X3EK"></div>
+
+      <!-- Response Details -->
+      <div class="glass rounded-2xl border border-white/30 dark:border-white/5 p-5" data-page-node-id="OmILvlgcsAb0zMuMvniEjG">
+        <div class="flex items-center justify-between mb-3" data-page-node-id="3zlS5SXZnEaKmvalXwt1Cw">
+          <div class="flex items-center gap-2" data-page-node-id="HQL0gWY9ddbXUa1Fm649WU">
+            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" data-page-node-id="bS7tYSJGkS78UweieeUamF">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" data-page-node-id="Vns7sRtCbnYFucPXWWIoWn" />
+            </svg>
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300" data-page-node-id="lMbGlkEtAzbQR9ONQ6Z7fx">完整响应</span>
+          </div>
+          <div class="flex items-center gap-2" data-page-node-id="AhdO6XW09wdXRl9gmQuskz">
+            <span id="tokenInfo" class="text-xs text-gray-400" data-page-node-id="g1vHnLqcffG8iQ6AYQaul1"></span>
+            <button id="copyResponseBtn" class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700/40 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" data-page-node-id="LTJ9SjhoAcM0hktDytKblz">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" data-page-node-id="slNAkOoqfCVDAvU9Hfc6m5">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" data-page-node-id="gLUk5tEybDo1od8mbq7k6Y" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <pre id="responseRaw" class="bg-gray-900 text-gray-100 text-xs leading-relaxed p-4 rounded-xl overflow-x-auto max-h-64 overflow-y-auto whitespace-pre-wrap break-all" data-page-node-id="pf2NB3yR53h8QOWHvJg5UD"></pre>
+      </div>
+    </div>
+
+    <!-- History Section -->
+    <div id="historySection" class="mt-8" data-page-node-id="kEWtDZR6XFFT0C2c1OSEBm">
+      <div class="flex items-center justify-between mb-4" data-page-node-id="mxcNoI7WtbqJjXcmYYRctD">
+        <div class="flex items-center gap-3" data-page-node-id="gk9bvxAAaQke5CAzEu2DJi">
+          <h2 class="text-lg font-semibold text-gray-800 dark:text-white" data-page-node-id="E21FCbp862sDKtg3lxFna7">生成历史</h2>
+          <span id="historyBadge" class="px-2.5 py-0.5 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium rounded-full" data-page-node-id="RLdXdSKG8JtXUbKMQgzxyA"></span>
+        </div>
+        <button id="clearHistoryBtn"
+                class="px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border border-gray-200 dark:border-gray-700 rounded-lg flex items-center gap-1.5" data-page-node-id="okljj4lRRiqppmkQro3y14">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" data-page-node-id="XGj4lB67af4kiiXR8OR8Wm"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" data-page-node-id="iL1Ft9TScTsVI7o0q8T2dm"/></svg>
+          清空历史
+        </button>
+      </div>
+      <div id="historyList" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4" data-page-node-id="OIN9ZjYhno3PyuwClocCVY"></div>
+      <div id="historyEmpty" class="glass rounded-2xl border border-dashed border-gray-300 dark:border-gray-700/60 p-8 text-center" data-page-node-id="RLFgAzHQRoBjhzXgfFkuWD">
+        <p class="text-sm text-gray-400 dark:text-gray-500" data-page-node-id="YVECat7anLc2VAaEsWgLiI">暂无生成历史，生成图片后会自动保存到这里</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="mt-10 text-center text-xs text-gray-400 dark:text-gray-600" data-page-node-id="SJD4CTXYjduEj13X8SELmE">
+      <p id="footerBase" data-page-node-id="hedaqDpU2a2mm2xKjsCYWd">API Base: https://api.geziapi.com · POST /v1/images/generations</p>
+    </footer>
+  </div>
+
+  <!-- Progress Overlay -->
+  <div id="progressOverlay" class="fixed inset-0 z-50 hidden" style="animation: fadeIn 0.2s ease;" data-page-node-id="KQvdRQhamiN7DWgNO2JaOt">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" data-page-node-id="A7nBcWwzhzCOkNqOp1dQmD"></div>
+    <div class="relative h-full flex items-center justify-center" data-page-node-id="EBM5MGa7ALPgkv5o5cilvj">
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/40 p-8 max-w-sm w-full mx-4" data-page-node-id="hq0xZfMZwm87bsJDy7RqpJ">
+        <div class="text-center mb-6" data-page-node-id="qYGTPO6pYQIBSPnyrmxE2d">
+          <div class="inline-flex items-center justify-center w-14 h-14 bg-indigo-100 dark:bg-indigo-900/40 rounded-2xl mb-4" data-page-node-id="v6DSCzCMarR1EgtHUJHUfK">
+            <svg class="w-7 h-7 text-indigo-600 dark:text-indigo-400 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24" data-page-node-id="Dp9VPArXHc1ILPB6NAnpKl">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" data-page-node-id="sfnQsLCIowSqhjBB84WybR" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-1" data-page-node-id="LptwYU7OfZIZZ9DQi6ZVKV">正在生成图片</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400" data-page-node-id="WGya9ac3gKDibkiAAPTMGh">请勿离开此页面，AI 正在努力创作中...</p>
+        </div>
+        <div class="space-y-3" data-page-node-id="00S9LxWNwoBWd89wfkk7zy">
+          <div class="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden" data-page-node-id="yUihlOUoGHncFW9dx8VQ7r">
+            <div id="progressBar" class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-300 ease-out" style="width: 0%" data-page-node-id="y5PIRgEbWu5gBWFCqkILQN"></div>
+          </div>
+          <div class="flex items-center justify-between text-sm" data-page-node-id="chnGwuilRtbM1Z39uavzbk">
+            <span id="progressPercent" class="font-mono font-medium text-indigo-600 dark:text-indigo-400" data-page-node-id="SkKk57O4X5wE4ilf6Pq4T1">0%</span>
+            <span class="text-gray-400" data-page-node-id="XeiAKvKx6m3nV4UZo0P3tb">请耐心等待...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Copy Toast -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-gray-900 dark:bg-gray-700 text-white text-sm rounded-xl shadow-lg pointer-events-none opacity-0" data-page-node-id="APDfYcrOTtlRDZyH7TSQUN">已复制到剪贴板</div>
+
+  <!-- Delete Confirm Modal -->
+  <div id="deleteModal" class="fixed inset-0 z-50 hidden" style="animation: fadeIn 0.2s ease;">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+    <div class="relative h-full flex items-center justify-center p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/40 max-w-xs w-full overflow-hidden">
+        <div id="deletePreviewWrap" class="bg-gray-100 dark:bg-gray-900 flex items-center justify-center">
+          <img id="deletePreview" class="max-h-48 w-auto max-w-full object-contain" alt="待删除图片预览">
+        </div>
+        <div class="p-5">
+          <h3 class="text-base font-semibold text-gray-800 dark:text-white mb-1.5">确认删除这张图片？</h3>
+          <p id="deleteInfo" class="text-xs text-gray-400 dark:text-gray-500 truncate mb-1"></p>
+          <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">删除后本地缓存将一并清除，不可恢复。</p>
+          <div class="flex items-center gap-3">
+            <button id="deleteCancelBtn" class="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-600/60 text-gray-600 dark:text-gray-300 text-sm font-medium rounded-xl border border-gray-200 dark:border-gray-600">取消</button>
+            <button id="deleteConfirmBtn" class="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-xl shadow-lg shadow-red-500/25 active:scale-[0.98]">确认删除</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Dark Mode =====
+    if (localStorage.getItem('darkMode') === 'true' ||
+        (!localStorage.getItem('darkMode') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    }
+
+    // ===== DOM refs =====
+    const $ = id => document.getElementById(id);
+    const apiBase = $('apiBase');
+    const footerBase = $('footerBase');
+    const apiKey = $('apiKey');
+    const model = $('model');
+    const prompt = $('prompt');
+    const imageUrlInput = $('imageUrlInput');
+    const addImageBtn = $('addImageBtn');
+    const imageUpload = $('imageUpload');
+    const imageList = $('imageList');
+    const size = $('size');
+    const customWidth = $('customWidth');
+    const customHeight = $('customHeight');
+    const responseFormat = $('responseFormat');
+    const nSelect = $('n');
+    const generateBtn = $('generateBtn');
+    const btnText = $('btnText');
+    const btnIcon = $('btnIcon');
+    const resetBtn = $('resetBtn');
+    const errorMsg = $('errorMsg');
+    const errorText = $('errorText');
+    const resultSection = $('resultSection');
+    const imageGrid = $('imageGrid');
+    const responseRaw = $('responseRaw');
+    const resultBadge = $('resultBadge');
+    const tokenInfo = $('tokenInfo');
+    const copyResponseBtn = $('copyResponseBtn');
+    const toast = $('toast');
+    const promptCount = $('promptCount');
+    const progressOverlay = $('progressOverlay');
+    const progressBar = $('progressBar');
+    const progressPercent = $('progressPercent');
+    const historyBadge = $('historyBadge');
+    const historyList = $('historyList');
+    const historyEmpty = $('historyEmpty');
+    const clearHistoryBtn = $('clearHistoryBtn');
+    const deleteModal = $('deleteModal');
+    const deletePreview = $('deletePreview');
+    const deleteInfo = $('deleteInfo');
+    const deleteCancelBtn = $('deleteCancelBtn');
+    const deleteConfirmBtn = $('deleteConfirmBtn');
+
+    // ===== Model selection persistence（默认 gpt-image-2-per）=====
+    const DEFAULT_MODEL = 'gpt-image-2-per';
+    const savedModel = localStorage.getItem('model');
+    if (savedModel && Array.from(model.options).some(o => o.value === savedModel)) {
+      model.value = savedModel;
+    }
+    model.addEventListener('change', () => {
+      localStorage.setItem('model', model.value);
+    });
+
+    // ===== Prompt char count =====
+    prompt.addEventListener('input', () => {
+      promptCount.textContent = prompt.value.length + ' 字';
+    });
+
+    // ===== Size logic: preset vs custom =====
+    const DEFAULT_SIZE = '1024x1024';
+    const savedSize = localStorage.getItem('size');
+    if (savedSize && Array.from(size.options).some(o => o.value === savedSize)) {
+      size.value = savedSize;
+    }
+    size.addEventListener('change', () => {
+      if (size.value) localStorage.setItem('size', size.value);
+    });
+
+    size.addEventListener('change', () => {
+      if (size.value) {
+        customWidth.value = '';
+        customHeight.value = '';
+        customWidth.disabled = true;
+        customHeight.disabled = true;
+      } else {
+        customWidth.disabled = false;
+        customHeight.disabled = false;
+      }
+    });
+
+    customWidth.addEventListener('input', () => { if (customWidth.value) { size.value = ''; size.disabled = true; } else size.disabled = false; });
+    customHeight.addEventListener('input', () => { if (customHeight.value) { size.value = ''; size.disabled = true; } else size.disabled = false; });
+
+    // ===== Reference Images Management =====
+    const refImages = [];
+
+    function renderImageList() {
+      imageList.innerHTML = '';
+      if (refImages.length === 0) {
+        imageList.classList.add('hidden');
+        return;
+      }
+      imageList.classList.remove('hidden');
+      refImages.forEach((src, idx) => {
+        const item = document.createElement('div');
+        item.className = 'group relative inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-lg text-xs';
+        item.innerHTML = `
+          <img src="${src}" class="w-7 h-7 rounded object-cover shrink-0">
+          <span class="text-gray-500 dark:text-gray-400 max-w-[120px] truncate">#${idx + 1}</span>
+          <button onclick="removeRefImage(${idx})" class="p-0.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        `;
+        imageList.appendChild(item);
+      });
+    }
+
+    function addRefImage(src) {
+      const trimmed = src.trim();
+      if (!trimmed) return false;
+      if (refImages.includes(trimmed)) {
+        showToast('该图片已在列表中');
+        return false;
+      }
+      refImages.push(trimmed);
+      renderImageList();
+      return true;
+    }
+
+    window.removeRefImage = (idx) => {
+      refImages.splice(idx, 1);
+      renderImageList();
+    };
+
+    addImageBtn.addEventListener('click', () => {
+      const val = imageUrlInput.value.trim();
+      if (!val) { imageUrlInput.focus(); return; }
+      if (addRefImage(val)) imageUrlInput.value = '';
+    });
+
+    imageUrlInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        addImageBtn.click();
+      }
+    });
+
+    imageUpload.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        addRefImage(ev.target.result);
+      };
+      reader.readAsDataURL(file);
+      imageUpload.value = '';
+    });
+
+    // ===== Download Image =====
+    window.downloadImage = async (url) => {
+      try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `ai-image-${Date.now()}.png`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+        
+        showToast('图片已下载');
+      } catch (err) {
+        showError('下载失败: ' + err.message);
+      }
+    };
+
+    // ===== Toast =====
+    let toastTimer;
+
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 2000);
+    }
+
+    // ===== API Key persistence =====
+    const savedKey = localStorage.getItem('apiKey');
+    if (savedKey) {
+      apiKey.value = savedKey;
+    }
+    apiKey.addEventListener('input', () => {
+      const val = apiKey.value.trim();
+      if (val) {
+        localStorage.setItem('apiKey', val);
+      } else {
+        localStorage.removeItem('apiKey');
+      }
+    });
+
+    // ===== API Base URL persistence =====
+    function syncBaseLabel() {
+      const base = apiBase.value.trim().replace(/\/+$/, '');
+      footerBase.textContent = `API Base: ${base || 'https://api.geziapi.com'} · POST /v1/images/generations`;
+    }
+    const savedBase = localStorage.getItem('apiBase');
+    if (savedBase) {
+      apiBase.value = savedBase;
+      syncBaseLabel();
+    }
+    apiBase.addEventListener('input', () => {
+      const val = apiBase.value.trim();
+      if (val) {
+        localStorage.setItem('apiBase', val);
+      } else {
+        localStorage.removeItem('apiBase');
+      }
+      syncBaseLabel();
+    });
+
+    // ===== Copy response =====
+    copyResponseBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(responseRaw.textContent).then(() => showToast('已复制到剪贴板'));
+    });
+
+    // ===== Progress Bar =====
+    let progressTimer = null;
+    let progressStartTime = null;
+    let progressCompleted = false;
+    const PROGRESS_DURATION = 110000;
+
+    function showProgress() {
+      progressCompleted = false;
+      progressStartTime = Date.now();
+      progressBar.style.width = '0%';
+      progressPercent.textContent = '0%';
+      progressOverlay.classList.remove('hidden');
+      document.body.classList.add('no-scroll');
+
+      const updateProgress = () => {
+        if (progressCompleted) return;
+        const elapsed = Date.now() - progressStartTime;
+        const pct = Math.min(99, (elapsed / PROGRESS_DURATION) * 99);
+        progressBar.style.width = pct + '%';
+        progressPercent.textContent = Math.round(pct) + '%';
+        if (elapsed < PROGRESS_DURATION) {
+          progressTimer = requestAnimationFrame(updateProgress);
+        }
+      };
+
+      progressTimer = requestAnimationFrame(updateProgress);
+    }
+
+    function completeProgress() {
+      progressCompleted = true;
+      cancelAnimationFrame(progressTimer);
+      progressBar.style.width = '100%';
+      progressPercent.textContent = '100%';
+      document.body.classList.remove('no-scroll');
+      setTimeout(() => {
+        progressOverlay.classList.add('hidden');
+      }, 500);
+    }
+
+    function hideProgress() {
+      progressCompleted = true;
+      cancelAnimationFrame(progressTimer);
+      progressOverlay.classList.add('hidden');
+      document.body.classList.remove('no-scroll');
+    }
+
+    // ===== Get final size =====
+    function getFinalSize() {
+      if (customWidth.value && customHeight.value) return `${customWidth.value}x${customHeight.value}`;
+      return size.value || '1024x1024';
+    }
+
+    // ===== Generate =====
+    generateBtn.addEventListener('click', async () => {
+      const key = apiKey.value.trim();
+      if (!key) {
+        showError('请输入 API Key（Bearer Token）');
+        apiKey.focus();
+        return;
+      }
+      const promptText = prompt.value.trim();
+      if (!promptText) {
+        showError('请输入提示词');
+        prompt.focus();
+        return;
+      }
+
+      hideError();
+      setLoading(true);
+      showProgress();
+
+      const body = {
+        model: model.value,
+        prompt: promptText,
+        size: getFinalSize(),
+        response_format: responseFormat.value,
+        n: parseInt(nSelect.value) || 1,
+      };
+
+      body.image = refImages.length > 0 ? [...refImages] : [];
+
+      try {
+        const base = apiBase.value.trim().replace(/\/+$/, '');
+        const res = await fetch(`${base}/v1/images/generations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${key}`,
+          },
+          body: JSON.stringify(body),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error?.message || data.message || `请求失败 (${res.status})`);
+        }
+
+        completeProgress();
+        renderResult(data);
+        saveToHistory(body, data);
+      } catch (err) {
+        hideProgress();
+        showError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    // ===== Render result =====
+    function renderResult(data) {
+      resultSection.classList.remove('hidden');
+
+      // Badge
+      const created = data.created ? new Date(data.created * 1000).toLocaleString() : '';
+      resultBadge.textContent = `创建于 ${created}`;
+
+      // Token info
+      if (data.usage) {
+        const u = data.usage;
+        tokenInfo.textContent = `Token: 输入 ${u.input_tokens ?? '-'} · 输出 ${u.output_tokens ?? '-'} · 总计 ${u.total_tokens ?? '-'}`;
+      } else {
+        tokenInfo.textContent = '';
+      }
+
+      // Image grid
+      imageGrid.innerHTML = '';
+      if (data.data && data.data.length) {
+        data.data.forEach((item, idx) => {
+          const imgUrl = item.url || item.b64_json;
+          if (!imgUrl) return;
+          const isB64 = item.b64_json;
+          const card = document.createElement('div');
+          card.className = 'image-card glass rounded-xl overflow-hidden border border-white/30 dark:border-white/5 group';
+
+          const imgContainer = document.createElement('div');
+          imgContainer.className = 'relative';
+
+          const img = document.createElement('img');
+          if (isB64) {
+            img.src = `data:image/png;base64,${imgUrl}`;
+          } else {
+            img.src = imgUrl;
+          }
+          img.alt = `生成图片 ${idx + 1}`;
+          img.className = 'w-full h-auto object-cover';
+          img.loading = 'lazy';
+          imgContainer.appendChild(img);
+
+          const overlay = document.createElement('div');
+          overlay.className = 'absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center gap-3 transition-all duration-200';
+          overlay.innerHTML = `
+            <button onclick="window.open('${isB64 ? img.src : imgUrl}', '_blank')" title="放大查看" class="p-2 bg-white/90 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-white shadow-lg translate-y-2 group-hover:translate-y-0 group-hover:group/btn">
+              <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"/></svg>
+            </button>
+            <button onclick="downloadImage('${isB64 ? img.src : imgUrl}')" title="下载" class="p-2 bg-white/90 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-white shadow-lg translate-y-2 group-hover:translate-y-0">
+              <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            </button>
+            <button onclick="navigator.clipboard.writeText('${isB64 ? img.src : imgUrl}').then(() => showToast('图片链接已复制'))" title="复制链接" class="p-2 bg-white/90 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-white shadow-lg translate-y-2 group-hover:translate-y-0">
+              <svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/></svg>
+            </button>
+          `;
+          imgContainer.appendChild(overlay);
+
+          const footer = document.createElement('div');
+          footer.className = 'px-3 py-2 flex items-center justify-between text-xs text-gray-400 dark:text-gray-500';
+          footer.innerHTML = `
+            <span>#${idx + 1}</span>
+            <span class="truncate ml-2">${isB64 ? 'Base64' : 'URL'}</span>
+          `;
+          card.appendChild(imgContainer);
+          card.appendChild(footer);
+          imageGrid.appendChild(card);
+        });
+      }
+
+      // Raw response
+      responseRaw.textContent = JSON.stringify(data, null, 2);
+
+      // Scroll to result
+      resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // ===== Loading =====
+    function setLoading(loading) {
+      generateBtn.disabled = loading;
+      if (loading) {
+        btnText.textContent = '生成中...';
+        btnIcon.innerHTML = '<div class="loading-spinner"></div>';
+      } else {
+        btnText.textContent = '生成图片';
+        btnIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.455 2.456L21.75 6l-1.036.259a3.375 3.375 0 00-2.455 2.456z" />`;
+      }
+    }
+
+    // ===== Error =====
+    function showError(msg) {
+      errorMsg.classList.remove('hidden');
+      errorText.textContent = msg;
+      resultSection.classList.add('hidden');
+    }
+
+    function hideError() {
+      errorMsg.classList.add('hidden');
+    }
+
+    // ===== Reset =====
+    resetBtn.addEventListener('click', () => {
+      model.value = DEFAULT_MODEL;
+      localStorage.setItem('model', DEFAULT_MODEL);
+      prompt.value = '';
+      promptCount.textContent = '0 字';
+      imageUrlInput.value = '';
+      refImages.length = 0;
+      renderImageList();
+      size.value = DEFAULT_SIZE;
+      localStorage.setItem('size', DEFAULT_SIZE);
+      customWidth.value = '';
+      customHeight.value = '';
+      responseFormat.value = 'url';
+      nSelect.value = '1';
+      hideError();
+      resultSection.classList.add('hidden');
+      generateBtn.scrollIntoView({ behavior: 'smooth' });
+    });
+
+    // ===== History (localStorage 持久化) =====
+    const HISTORY_KEY = 'imgGenHistory';
+    const HISTORY_MAX = 50;
+    let historyRecords = (() => {
+      try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+      catch { return []; }
+    })();
+
+    // ===== IndexedDB 图片缓存（本地存储 + 30 天自动清理）=====
+    const IDB_NAME = 'imgGenCache';
+    const IDB_STORE = 'images';
+    const RETENTION_DAYS = 30;
+    const RETENTION_MS = RETENTION_DAYS * 24 * 60 * 60 * 1000;
+    const MAX_BLOB_SIZE = 20 * 1024 * 1024; // 超过 20MB 的图片不入本地库
+    let idbPromise = null;
+
+    function openImageDB() {
+      if (!idbPromise) {
+        idbPromise = new Promise((resolve, reject) => {
+          const req = indexedDB.open(IDB_NAME, 1);
+          req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains(IDB_STORE)) {
+              db.createObjectStore(IDB_STORE, { keyPath: 'key' });
+            }
+          };
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      }
+      return idbPromise;
+    }
+
+    function idbPut(key, blob) {
+      return openImageDB().then(db => new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put({ key, blob, time: Date.now() });
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      }));
+    }
+
+    function idbGet(key) {
+      return openImageDB().then(db => new Promise((resolve, reject) => {
+        const req = db.transaction(IDB_STORE).objectStore(IDB_STORE).get(key);
+        req.onsuccess = () => resolve(req.result ? req.result.blob : null);
+        req.onerror = () => reject(req.error);
+      }));
+    }
+
+    function idbDelete(keys) {
+      if (!keys.length) return Promise.resolve();
+      return openImageDB().then(db => new Promise((resolve, reject) => {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        keys.forEach(k => tx.objectStore(IDB_STORE).delete(k));
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      }));
+    }
+
+    function idbGetAll() {
+      return openImageDB().then(db => new Promise((resolve, reject) => {
+        const req = db.transaction(IDB_STORE).objectStore(IDB_STORE).getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => reject(req.error);
+      }));
+    }
+
+    function recordBlobKeys(rec) {
+      return (rec.images || []).filter(im => im.key).map(im => im.key);
+    }
+
+    // 30 天过期清理：删掉过期记录及其 IndexedDB 里的图片（浏览器随后物理回收磁盘文件）
+    async function purgeExpiredHistory() {
+      const cutoff = Date.now() - RETENTION_MS;
+      let expired;
+      try { expired = (await idbGetAll()).filter(e => e.time < cutoff).map(e => e.key); }
+      catch (e) { expired = []; }
+      const expiredRecKeys = historyRecords.filter(rec => rec.time < cutoff).flatMap(recordBlobKeys);
+      const keys = [...new Set([...expired, ...expiredRecKeys])];
+      if (keys.length) {
+        keys.forEach(k => { const u = blobUrlCache.get(k); if (u) { URL.revokeObjectURL(u); blobUrlCache.delete(k); } });
+        await idbDelete(keys);
+      }
+      const before = historyRecords.length;
+      historyRecords = historyRecords.filter(rec => rec.time >= cutoff);
+      if (historyRecords.length !== before || keys.length) {
+        persistHistory();
+        if (before !== historyRecords.length) showToast(`已自动清理 ${before - historyRecords.length} 条超过 ${RETENTION_DAYS} 天的历史记录`);
+      }
+    }
+
+    // blob -> objectURL 缓存，避免重复读库
+    const blobUrlCache = new Map();
+
+    async function resolveImageSrc(img) {
+      if (!img) return null;
+      if (img.type === 'idb') {
+        if (blobUrlCache.has(img.key)) return blobUrlCache.get(img.key);
+        const blob = await idbGet(img.key);
+        if (!blob) return null;
+        const url = URL.createObjectURL(blob);
+        blobUrlCache.set(img.key, url);
+        return url;
+      }
+      return img.src || null;
+    }
+
+    function persistHistory() {
+      const original = historyRecords.slice(0, HISTORY_MAX);
+      const list = original.slice();
+      // 空间不足时逐条丢弃最旧的记录，直到能存下
+      while (list.length > 1) {
+        try {
+          localStorage.setItem(HISTORY_KEY, JSON.stringify(list));
+          historyRecords = list;
+          if (list.length < original.length) showToast('存储空间不足，已自动清理较早的历史记录');
+          return true;
+        } catch (e) {
+          list.pop();
+        }
+      }
+      // 只剩最新一条仍存不下：丢弃其中的 Base64 大图后重试
+      if (list.length === 1) {
+        const cur = list[0];
+        const urlOnly = (cur.images || []).filter(im => im.type === 'url');
+        const slim = { ...cur, images: urlOnly, note: urlOnly.length ? 'Base64 图片过大，未保存' : '图片过大，未保存' };
+        try {
+          localStorage.setItem(HISTORY_KEY, JSON.stringify([slim]));
+          historyRecords = [slim];
+          if (original.length > 1) showToast('存储空间不足，已自动清理较早的历史记录');
+          return true;
+        } catch (e) { /* 仍放不下则放弃 */ }
+      }
+      historyRecords = [];
+      localStorage.removeItem(HISTORY_KEY);
+      return false;
+    }
+
+    async function saveToHistory(requestBody, data) {
+      const imgs = [];
+      ((data && data.data) || []).forEach(item => {
+        if (item.url) imgs.push({ kind: 'url', src: item.url });
+        else if (item.b64_json) imgs.push({ kind: 'b64', src: `data:image/png;base64,${item.b64_json}` });
+      });
+      if (!imgs.length) return;
+      const rec = {
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+        time: Date.now(),
+        prompt: requestBody.prompt,
+        model: requestBody.model,
+        size: requestBody.size,
+        responseFormat: requestBody.response_format,
+        n: requestBody.n,
+        refImageCount: (requestBody.image || []).length,
+        images: [],
+      };
+      // URL 优先展示；同时把图片抓取为 Blob 存入 IndexedDB 作为链接失效后的本地兜底
+      for (let i = 0; i < imgs.length; i++) {
+        const key = `img_${rec.id}_${i}`;
+        const entry = { type: imgs[i].kind, src: imgs[i].src };
+        try {
+          const res = await fetch(imgs[i].src);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const blob = await res.blob();
+          if (blob.size <= MAX_BLOB_SIZE) {
+            await idbPut(key, blob);
+            entry.key = key; // 本地兜底
+          }
+        } catch (e) {
+          // 抓取失败（如 CORS 限制）时仅保存 URL
+        }
+        rec.images.push(entry);
+      }
+      if (!rec.images.length) return;
+      historyRecords.unshift(rec);
+      persistHistory();
+      renderHistory();
+    }
+
+    function openImage(src) {
+      // 优先转为 blob 打开，避免浏览器拦截 data: URL
+      fetch(src).then(r => r.blob()).then(b => window.open(URL.createObjectURL(b), '_blank')).catch(() => window.open(src, '_blank'));
+    }
+
+    function renderHistory() {
+      historyBadge.textContent = `${historyRecords.length} 条记录`;
+      historyList.innerHTML = '';
+      historyEmpty.classList.toggle('hidden', historyRecords.length > 0);
+      historyRecords.forEach(rec => {
+        const first = rec.images[0];
+        const card = document.createElement('div');
+        card.className = 'image-card glass rounded-xl overflow-hidden border border-white/30 dark:border-white/5 group';
+
+        // 缩略图区
+        const thumbWrap = document.createElement('div');
+        thumbWrap.className = 'relative';
+        if (first) {
+          (async () => {
+            // URL 优先，链接失效时回退到本地 IndexedDB 缓存
+            let currentSrc = first.src || null;
+            const fallbackSrc = first.key ? await resolveImageSrc({ type: 'idb', key: first.key }) : null;
+            const thumb = document.createElement('img');
+            thumb.alt = rec.prompt;
+            thumb.className = 'w-full h-44 object-cover cursor-pointer';
+            thumb.loading = 'lazy';
+
+            const showPlaceholder = () => {
+              const ph = document.createElement('div');
+              ph.className = 'w-full h-44 flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-xs text-gray-400 text-center px-4';
+              ph.textContent = '图片已失效（URL 过期且无本地缓存），可复制提示词重新生成';
+              thumbWrap.replaceChild(ph, thumb);
+            };
+
+            if (!currentSrc && !fallbackSrc) {
+              showPlaceholder();
+              return;
+            }
+            thumb.src = currentSrc;
+            thumb.addEventListener('error', () => {
+              if (fallbackSrc && currentSrc !== fallbackSrc) {
+                currentSrc = fallbackSrc;
+                thumb.src = fallbackSrc;
+              } else if (!fallbackSrc) {
+                showPlaceholder();
+              }
+            });
+            thumb.addEventListener('click', () => openImage(currentSrc));
+            thumbWrap.appendChild(thumb);
+
+            if (rec.images.length > 1) {
+              const more = document.createElement('span');
+              more.className = 'absolute top-2 right-2 px-2 py-0.5 bg-black/60 text-white text-xs rounded-full';
+              more.textContent = `+${rec.images.length - 1}`;
+              thumbWrap.appendChild(more);
+            }
+
+            const overlay = document.createElement('div');
+            overlay.className = 'absolute inset-0 bg-black/0 group-hover:bg-black/30 flex items-center justify-center gap-3 transition-all duration-200 pointer-events-none';
+            const mkBtn = (title, path, onClick) => {
+              const b = document.createElement('button');
+              b.title = title;
+              b.className = 'p-2 bg-white/90 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-white shadow-lg pointer-events-auto';
+              b.innerHTML = `<svg class="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">${path}</svg>`;
+              b.addEventListener('click', onClick);
+              return b;
+            };
+            overlay.appendChild(mkBtn('放大查看', '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7"/>', () => openImage(currentSrc)));
+            overlay.appendChild(mkBtn('下载', '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>', () => downloadImage(currentSrc)));
+            thumbWrap.appendChild(overlay);
+          })();
+        } else {
+          const ph = document.createElement('div');
+          ph.className = 'w-full h-44 flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-xs text-gray-400 text-center px-4';
+          ph.textContent = rec.note || '无图片信息';
+          thumbWrap.appendChild(ph);
+        }
+        if (rec.note && first) {
+          const note = document.createElement('span');
+          note.className = 'absolute bottom-2 left-2 right-2 px-2 py-1 bg-black/60 text-yellow-200 text-xs rounded truncate';
+          note.textContent = rec.note;
+          thumbWrap.appendChild(note);
+        }
+
+        // 信息区
+        const info = document.createElement('div');
+        info.className = 'p-3 space-y-2';
+
+        const promptEl = document.createElement('p');
+        promptEl.className = 'text-sm text-gray-700 dark:text-gray-300 line-clamp-2 break-all';
+        promptEl.textContent = rec.prompt;
+        promptEl.title = rec.prompt;
+        info.appendChild(promptEl);
+
+        const meta = document.createElement('p');
+        meta.className = 'text-xs text-gray-400 dark:text-gray-500 truncate';
+        meta.textContent = `${new Date(rec.time).toLocaleString()} · ${rec.model} · ${rec.size} · ${rec.n} 张`;
+        info.appendChild(meta);
+
+        const actions = document.createElement('div');
+        actions.className = 'flex items-center gap-2';
+        const reuseBtn = document.createElement('button');
+        reuseBtn.className = 'flex-1 px-2 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 text-xs font-medium rounded-lg';
+        reuseBtn.textContent = '使用参数';
+        reuseBtn.addEventListener('click', () => reuseHistory(rec));
+        const delBtn = document.createElement('button');
+        delBtn.className = 'px-2 py-1.5 bg-gray-100 dark:bg-gray-700/60 hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 text-xs rounded-lg';
+        delBtn.textContent = '删除';
+        delBtn.addEventListener('click', () => confirmDeleteRecord(rec));
+        actions.appendChild(reuseBtn);
+        actions.appendChild(delBtn);
+        info.appendChild(actions);
+
+        card.appendChild(thumbWrap);
+        card.appendChild(info);
+        historyList.appendChild(card);
+      });
+    }
+
+    function reuseHistory(rec) {
+      prompt.value = rec.prompt;
+      promptCount.textContent = rec.prompt.length + ' 字';
+      if (rec.model) { model.value = rec.model; localStorage.setItem('model', model.value); }
+      if (rec.responseFormat) responseFormat.value = rec.responseFormat;
+      nSelect.value = String(rec.n || 1);
+      const presets = Array.from(size.options).map(o => o.value).filter(Boolean);
+      if (presets.includes(rec.size)) {
+        size.value = rec.size;
+        size.disabled = false;
+        localStorage.setItem('size', rec.size);
+        customWidth.value = '';
+        customHeight.value = '';
+        customWidth.disabled = true;
+        customHeight.disabled = true;
+      } else {
+        const [w, h] = (rec.size || '').split('x');
+        customWidth.value = w || '';
+        customHeight.value = h || '';
+        size.value = '';
+        size.disabled = true;
+      }
+      hideError();
+      generateBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      showToast('已填入该次生成的参数');
+    }
+
+    clearHistoryBtn.addEventListener('click', () => {
+      if (!historyRecords.length) return;
+      if (!confirm('确定清空所有生成历史吗？此操作不可恢复。')) return;
+      const allKeys = historyRecords.flatMap(recordBlobKeys);
+      historyRecords = [];
+      localStorage.removeItem(HISTORY_KEY);
+      allKeys.forEach(k => { const u = blobUrlCache.get(k); if (u) { URL.revokeObjectURL(u); blobUrlCache.delete(k); } });
+      idbDelete(allKeys).then(() => renderHistory());
+      renderHistory();
+      showToast('已清空生成历史');
+    });
+
+    // ===== 删除确认弹窗（带图片预览）=====
+    let pendingDeleteRec = null;
+
+    async function confirmDeleteRecord(rec) {
+      pendingDeleteRec = rec;
+      deletePreview.removeAttribute('src');
+      const first = (rec.images || [])[0];
+      let src = first && first.src ? first.src : null;
+      if (!src && first && first.key) src = await resolveImageSrc({ type: 'idb', key: first.key });
+      if (src) {
+        deletePreview.src = src;
+        deletePreview.classList.remove('hidden');
+      } else {
+        deletePreview.classList.add('hidden');
+      }
+      deleteInfo.textContent = `${new Date(rec.time).toLocaleString()} · ${rec.model} · ${rec.size} · ${rec.n} 张`;
+      deleteModal.classList.remove('hidden');
+      document.body.classList.add('no-scroll');
+    }
+
+    function closeDeleteModal() {
+      pendingDeleteRec = null;
+      deleteModal.classList.add('hidden');
+      document.body.classList.remove('no-scroll');
+    }
+
+    deleteCancelBtn.addEventListener('click', closeDeleteModal);
+    deleteModal.addEventListener('click', (e) => { if (e.target === deleteModal) closeDeleteModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !deleteModal.classList.contains('hidden')) closeDeleteModal(); });
+
+    deleteConfirmBtn.addEventListener('click', () => {
+      const rec = pendingDeleteRec;
+      if (!rec) return;
+      closeDeleteModal();
+      historyRecords = historyRecords.filter(r => r.id !== rec.id);
+      persistHistory();
+      recordBlobKeys(rec).forEach(k => { const u = blobUrlCache.get(k); if (u) { URL.revokeObjectURL(u); blobUrlCache.delete(k); } });
+      idbDelete(recordBlobKeys(rec));
+      renderHistory();
+      showToast('已删除该图片');
+    });
+
+    // 页面加载时：先清理超过 30 天的数据，再渲染历史
+    purgeExpiredHistory().catch(() => {}).finally(() => renderHistory());
+
+    // ===== Enter to submit =====
+    prompt.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        generateBtn.click();
+      }
+    });
+  </script>
+
+</body>
+</html>
